@@ -235,6 +235,35 @@ app.get("/runtimes", (req: Request, res: Response) => {
     ])
 })
 
+
+
+app.get("/debug", (req: Request, res: Response) => {
+    const results: Record<string, any> = {}
+
+    const binaries = ["node", "python3", "python", "java", "javac", "py"]
+    for (const bin of binaries) {
+        try {
+            const cmd = IS_WINDOWS ? `where ${bin}` : `which ${bin}`
+            const result = execSync(cmd, { stdio: ["pipe", "pipe", "pipe"] })
+                .toString().trim()
+            results[bin] = { found: true, path: result }
+        } catch {
+            results[bin] = { found: false }
+        }
+    }
+
+    res.send({
+        platform: os.platform(),
+        arch: os.arch(),
+        IS_WINDOWS,
+        JAVA_HOME: process.env.JAVA_HOME || "not set",
+        PATH: process.env.PATH,
+        resolvedBinaries: { NODE, PYTHON, JAVA, JAVAC },  // ← this already shows startup resolution
+        binarySearch: results,
+    })
+})
+
+
 io.on("connection", (socket) => {
 	// ... (rest of the socket logic remains same)
 	socket.on(SocketEvent.JOIN_REQUEST, ({ roomId, username }) => {
