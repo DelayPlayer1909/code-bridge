@@ -91,7 +91,7 @@ const FormComponent = () => {
     return (
         <div className="glass flex w-full max-w-[500px] flex-col items-center justify-center gap-8 rounded-2xl p-8 sm:w-[500px] sm:p-12">
             <div className="flex flex-col items-center gap-2">
-                <img src={logo} alt="Logo" className="w-48" />
+                <img src={logo} alt="Logo" className="w-[22vw]" />
                 <h1 className="text-sm font-medium tracking-widest text-primary/80 uppercase">Realtime Collaboration</h1>
             </div>
             <form onSubmit={joinRoom} className="flex w-full flex-col gap-4">
