@@ -78,34 +78,39 @@ function ChatInput() {
     };
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3 pt-2">
             {error && (
-                <div className="text-xs text-red-400 italic">
+                <div className="text-[10px] text-danger font-medium animate-shake px-1">
                     {error}
                 </div>
             )}
             <form
                 onSubmit={handleSendMessage}
-                className="flex justify-between rounded-md border border-primary"
+                className="relative flex items-center"
             >
                 <input
                     type="text"
-                    className="w-full flex-grow rounded-md border-none bg-dark p-2 outline-none"
-                    placeholder={isAIProcessing ? "AI is thinking..." : "Type @ai followed by your question..."}
+                    className="input-field pr-12 text-sm"
+                    placeholder={isAIProcessing ? "AI is thinking..." : "Type @ai to ask Gemini..."}
                     ref={inputRef}
                     disabled={isAIProcessing}
                 />
                 <button
-                    className="flex items-center justify-center rounded-r-md bg-primary p-2 text-black disabled:opacity-50"
+                    className="absolute right-1.5 flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                     type="submit"
                     disabled={isAIProcessing}
                 >
-                    <LuSendHorizonal size={24} />
+                    <LuSendHorizonal size={18} />
                 </button>
             </form>
             {isAIProcessing && (
-                <div className="text-xs text-primary italic">
-                    Gemini is thinking...
+                <div className="flex items-center gap-2 px-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.2s]" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.4s]" />
+                    <span className="text-[10px] text-primary/80 font-bold uppercase tracking-wider ml-1">
+                        Gemini Thinking
+                    </span>
                 </div>
             )}
         </div>

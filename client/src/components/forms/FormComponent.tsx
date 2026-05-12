@@ -89,35 +89,44 @@ const FormComponent = () => {
     }, [currentUser, location.state?.redirect, navigate, setStatus, socket, status])
 
     return (
-        <div className="flex w-full max-w-[500px] flex-col items-center justify-center gap-4 p-4 sm:w-[500px] sm:p-8">
-            <img src={logo} alt="Logo" className="w-full"/>
+        <div className="glass flex w-full max-w-[500px] flex-col items-center justify-center gap-8 rounded-2xl p-8 sm:w-[500px] sm:p-12">
+            <div className="flex flex-col items-center gap-2">
+                <img src={logo} alt="Logo" className="w-48" />
+                <h1 className="text-sm font-medium tracking-widest text-primary/80 uppercase">Realtime Collaboration</h1>
+            </div>
             <form onSubmit={joinRoom} className="flex w-full flex-col gap-4">
-                <input
-                    type="text"
-                    name="roomId"
-                    placeholder="Room Id"
-                    className="w-full rounded-md border border-gray-500 bg-darkHover px-3 py-3 focus:outline-none"
-                    onChange={handleInputChanges}
-                    value={currentUser.roomId}
-                />
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Username"
-                    className="w-full rounded-md border border-gray-500 bg-darkHover px-3 py-3 focus:outline-none"
-                    onChange={handleInputChanges}
-                    value={currentUser.username}
-                    ref={usernameRef}
-                />
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-white/50 ml-1 uppercase">Room ID</label>
+                    <input
+                        type="text"
+                        name="roomId"
+                        placeholder="e.g. workspace-123"
+                        className="input-field"
+                        onChange={handleInputChanges}
+                        value={currentUser.roomId}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-white/50 ml-1 uppercase">Username</label>
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="e.g. Suyash"
+                        className="input-field"
+                        onChange={handleInputChanges}
+                        value={currentUser.username}
+                        ref={usernameRef}
+                    />
+                </div>
                 <button
                     type="submit"
-                    className="mt-2 w-full rounded-md bg-primary px-8 py-3 text-lg font-semibold text-black"
+                    className="btn-primary mt-4"
                 >
-                    Join
+                    Join Room
                 </button>
             </form>
             <button
-                className="cursor-pointer select-none underline"
+                className="text-sm text-white/60 hover:text-white transition-colors cursor-pointer select-none underline decoration-primary/30 underline-offset-4"
                 onClick={createNewRoomId}
             >
                 Generate Unique Room Id

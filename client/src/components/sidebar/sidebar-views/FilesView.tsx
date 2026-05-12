@@ -180,24 +180,24 @@ function FilesView() {
         >
             <FileStructureView />
             <div
-                className={cn(`flex min-h-fit flex-col justify-end pt-2`, {
+                className={cn(`flex min-h-fit flex-col justify-end gap-2 pt-4`, {
                     hidden: minHeightReached,
                 })}
             >
-                <hr />
+                <div className="h-px w-full bg-white/5 mb-2" />
                 <button
-                    className="mt-2 flex w-full justify-start rounded-md p-2 transition-all hover:bg-darkHover"
+                    className="flex w-full items-center justify-start rounded-lg p-2.5 text-sm font-medium transition-all hover:bg-white/5 active:scale-[0.98]"
                     onClick={handleOpenDirectory}
                     disabled={isLoading}
                 >
-                    <TbFileUpload className="mr-2" size={24} />
-                    {isLoading ? "Loading..." : "Open File/Folder"}
+                    <TbFileUpload className="mr-3 text-primary" size={20} />
+                    {isLoading ? "Loading..." : "Open Directory"}
                 </button>
                 <button
-                    className="flex w-full justify-start rounded-md p-2 transition-all hover:bg-darkHover"
+                    className="flex w-full items-center justify-start rounded-lg p-2.5 text-sm font-medium transition-all hover:bg-white/5 active:scale-[0.98]"
                     onClick={downloadFilesAndFolders}
                 >
-                    <BiArchiveIn className="mr-2" size={22} /> Download Code
+                    <BiArchiveIn className="mr-3 text-accent" size={20} /> Download Code
                 </button>
             </div>
         </div>

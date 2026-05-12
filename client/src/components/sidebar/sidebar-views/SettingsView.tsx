@@ -45,50 +45,59 @@ function SettingsView() {
 
     return (
         <div
-            className="flex flex-col items-center gap-2 p-4"
+            className="flex flex-col items-center gap-4 p-4 overflow-auto custom-scrollbar"
             style={{ height: viewHeight }}
         >
             <h1 className="view-title">Settings</h1>
             {/* Choose Font Family option */}
             <div className="flex w-full items-end gap-2">
-                <Select
-                    onChange={handleFontFamilyChange}
-                    value={fontFamily}
-                    options={editorFonts}
-                    title="Font Family"
-                />
+                <div className="flex-grow">
+                    <Select
+                        onChange={handleFontFamilyChange}
+                        value={fontFamily}
+                        options={editorFonts}
+                        title="Font Family"
+                    />
+                </div>
                 {/* Choose font size option */}
-                <select
-                    value={fontSize}
-                    onChange={handleFontSizeChange}
-                    className="rounded-md border-none bg-darkHover px-4 py-2 text-white outline-none"
-                    title="Font Size"
-                >
-                    {[...Array(13).keys()].map((size) => {
-                        return (
-                            <option key={size} value={size + 12}>
-                                {size + 12}
-                            </option>
-                        )
-                    })}
-                </select>
+                <div className="flex flex-col gap-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1 uppercase">Size</label>
+                    <select
+                        value={fontSize}
+                        onChange={handleFontSizeChange}
+                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm text-white outline-none transition-all focus:border-primary/50 focus:bg-white/10"
+                        title="Font Size"
+                    >
+                        {[...Array(13).keys()].map((size) => {
+                            return (
+                                <option key={size} value={size + 12} className="bg-dark">
+                                    {size + 12}
+                                </option>
+                            )
+                        })}
+                    </select>
+                </div>
             </div>
             {/* Choose theme option */}
-            <Select
-                onChange={handleThemeChange}
-                value={theme}
-                options={Object.keys(editorThemes)}
-                title="Theme"
-            />
+            <div className="w-full">
+                <Select
+                    onChange={handleThemeChange}
+                    value={theme}
+                    options={Object.keys(editorThemes)}
+                    title="Theme"
+                />
+            </div>
             {/* Choose language option */}
-            <Select
-                onChange={handleLanguageChange}
-                value={language}
-                options={langNames}
-                title="Language"
-            />
+            <div className="w-full">
+                <Select
+                    onChange={handleLanguageChange}
+                    value={language}
+                    options={langNames}
+                    title="Language"
+                />
+            </div>
             <button
-                className="mt-auto w-full rounded-md border-none bg-darkHover px-4 py-2 text-white outline-none"
+                className="btn-primary mt-auto w-full !bg-none !bg-white/5 !text-white/70 hover:!bg-white/10 hover:!text-white border border-white/5"
                 onClick={resetSettings}
             >
                 Reset to default

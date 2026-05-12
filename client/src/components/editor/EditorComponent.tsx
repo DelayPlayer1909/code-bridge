@@ -1,6 +1,7 @@
 import { useFileSystem } from "@/context/FileContext"
 import useResponsive from "@/hooks/useResponsive"
 import cn from "classnames"
+import { IoCodeSlash } from "react-icons/io5"
 import Editor from "./Editor"
 import FileTab from "./FileTab"
 
@@ -10,13 +11,16 @@ function EditorComponent() {
 
     if (openFiles.length <= 0) {
         return (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                <div className="flex flex-col items-center justify-center p-6 bg-gray-700 rounded-lg shadow-lg">
-                    <h1 className="text-xl font-semibold text-white">
-                        No file is currently open
+            <div className="flex h-full w-full items-center justify-center bg-dark">
+                <div className="glass flex flex-col items-center justify-center p-12 rounded-3xl gap-4">
+                    <div className="rounded-2xl bg-primary/10 p-6">
+                        <IoCodeSlash size={60} className="text-primary animate-pulse-slow" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">
+                        No active file
                     </h1>
-                    <p className="text-gray-300 mt-2">
-                        Select or create a file to start editing.
+                    <p className="text-white/50 text-center max-w-[250px]">
+                        Select a file from the sidebar or create a new one to begin coding.
                     </p>
                 </div>
             </div>
@@ -26,15 +30,17 @@ function EditorComponent() {
     return (
         <main
             className={cn(
-                "flex w-full flex-col overflow-hidden border border-gray-700 rounded-lg shadow-lg bg-gray-900",
+                "flex w-full flex-col overflow-hidden bg-dark",
                 {
-                    "h-[calc(100vh-50px)]": !minHeightReached,
+                    "h-[calc(100vh-60px)]": !minHeightReached,
                     "h-full": minHeightReached,
                 }
             )}
         >
             <FileTab />
-            <Editor />
+            <div className="flex-grow overflow-hidden border-t border-white/5">
+                <Editor />
+            </div>
         </main>
     )
 }

@@ -1,13 +1,14 @@
 import { useAppContext } from "@/context/AppContext"
 import { RemoteUser, USER_CONNECTION_STATUS } from "@/types/user"
 import Avatar from "react-avatar"
+import cn from "classnames"
 
 function Users() {
     const { users } = useAppContext()
 
     return (
-        <div className="flex min-h-[200px] flex-grow justify-center overflow-y-auto py-2">
-            <div className="flex h-full w-full flex-wrap items-start gap-x-2 gap-y-6">
+        <div className="flex flex-grow justify-center overflow-y-auto py-4 custom-scrollbar">
+            <div className="grid h-full w-full grid-cols-2 items-start gap-4 sm:grid-cols-3">
                 {users.map((user) => {
                     return <User key={user.socketId} user={user} />
                 })}
@@ -18,24 +19,35 @@ function Users() {
 
 const User = ({ user }: { user: RemoteUser }) => {
     const { username, status } = user
-    const title = `${username} - ${status === USER_CONNECTION_STATUS.ONLINE ? "online" : "offline"}`
+    const isOnline = status === USER_CONNECTION_STATUS.ONLINE
+    const title = `${username} - ${isOnline ? "online" : "offline"}`
 
     return (
         <div
-            className="relative flex w-[100px] flex-col items-center gap-2"
+            className="group relative flex flex-col items-center gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 transition-all hover:bg-white/10"
             title={title}
         >
-            <Avatar name={username} size="50" round={"12px"} title={title} />
-            <p className="line-clamp-2 max-w-full text-ellipsis break-words">
+            <div className="relative">
+                <Avatar 
+                    name={username} 
+                    size="50" 
+                    round="16px" 
+                    title={title}
+                    className="shadow-lg transition-transform group-hover:scale-105" 
+                />
+                <div
+                    className={cn(
+                        "absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-dark shadow-sm",
+                        {
+                            "bg-success": isOnline,
+                            "bg-danger": !isOnline
+                        }
+                    )}
+                ></div>
+            </div>
+            <p className="w-full truncate text-center text-xs font-medium text-white/70 group-hover:text-white">
                 {username}
             </p>
-            <div
-                className={`absolute right-5 top-0 h-3 w-3 rounded-full ${
-                    status === USER_CONNECTION_STATUS.ONLINE
-                        ? "bg-green-500"
-                        : "bg-danger"
-                }`}
-            ></div>
         </div>
     )
 }

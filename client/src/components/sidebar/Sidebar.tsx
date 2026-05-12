@@ -12,7 +12,7 @@ import { MdOutlineDraw } from "react-icons/md"
 import cn from "classnames"
 import { Tooltip } from 'react-tooltip'
 import { useState } from 'react'
-import { tooltipStyles } from "./tooltipStyles"
+import { buttonStyles, tooltipStyles } from "./tooltipStyles"
 
 function Sidebar() {
     const {
@@ -46,7 +46,7 @@ function Sidebar() {
         <aside className="flex w-full md:h-full md:max-h-full md:min-h-full md:w-auto">
             <div
                 className={cn(
-                    "fixed bottom-0 left-0 z-50 flex h-[50px] w-full gap-4 self-end overflow-hidden border-t border-darkHover bg-dark p-2 md:static md:h-full md:w-[50px] md:min-w-[50px] md:flex-col md:border-r md:border-t-0 md:p-2 md:pt-4",
+                    "fixed bottom-0 left-0 z-50 flex h-[60px] w-full items-center justify-around overflow-hidden border-t border-white/5 bg-secondary/80 backdrop-blur-lg px-4 md:static md:h-full md:w-[70px] md:min-w-[70px] md:flex-col md:justify-start md:gap-4 md:border-r md:border-t-0 md:py-6",
                     {
                         hidden: minHeightReached,
                     },
@@ -74,8 +74,8 @@ function Sidebar() {
                 />
 
                 {/* Button to change activity state coding or drawing */}
-                <div className="flex items-center justify-center h-fit">
-                    <button className="flex items-center justify-cente  rounded transition-colors duration-200 ease-in-out hover:bg-[#3D404A] p-1.5"
+                <div className="flex items-center justify-center md:mt-auto">
+                    <button className={cn(buttonStyles.base, buttonStyles.hover)}
                     onClick={changeState}
                     onMouseEnter={() => setShowTooltip(true)}
                     data-tooltip-id="activity-state-tooltip"
@@ -85,16 +85,16 @@ function Sidebar() {
                                 : "Switch to Coding Mode"
                     }>
                         {activityState === ACTIVITY_STATE.CODING ? (
-                            <MdOutlineDraw size={30} />
+                            <MdOutlineDraw size={28} />
                         ) : (
-                            <IoCodeSlash size={30} />
+                            <IoCodeSlash size={28} />
                         )}
                     </button>
                     {showTooltip && (
                         <Tooltip 
                             id="activity-state-tooltip"
                             place="right"
-                            offset={15}
+                            offset={25}
                             className="!z-50"
                             style={tooltipStyles}
                             noArrow={false}
@@ -105,11 +105,13 @@ function Sidebar() {
                 </div>
             </div>
             <div
-                className="absolute left-0 top-0 z-20 w-full flex-col bg-dark md:static md:min-w-[300px]"
+                className="absolute left-0 top-0 z-20 w-full flex-col bg-dark/95 backdrop-blur-xl md:static md:min-w-[300px] md:border-r md:border-white/5"
                 style={isSidebarOpen ? {} : { display: "none" }}
             >
                 {/* Render the active view component */}
-                {viewComponents[activeView]}
+                <div className="flex h-full flex-col p-4 overflow-hidden">
+                    {viewComponents[activeView]}
+                </div>
             </div>
         </aside>
     )

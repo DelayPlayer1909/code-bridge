@@ -1,6 +1,7 @@
 import { useAppContext } from "@/context/AppContext"
 import { useChatRoom } from "@/context/ChatContext"
 import { SyntheticEvent, useEffect, useRef } from "react"
+import cn from "classnames"
 
 function ChatList() {
     const {
@@ -40,7 +41,7 @@ function ChatList() {
 
     return (
         <div
-            className="flex-grow overflow-auto rounded-md bg-darkHover p-2"
+            className="flex-grow overflow-auto rounded-xl bg-white/5 p-4 custom-scrollbar"
             ref={messagesContainerRef}
             onScroll={handleScroll}
         >
@@ -51,40 +52,36 @@ function ChatList() {
                 return (
                     <div
                         key={index}
-                        className={`mb-2 w-[80%] break-words rounded-md px-3 py-2 ${
-                            isAIMessage
-                                ? "bg-green-900 text-white"
-                                : isCurrentUser
-                                ? "ml-auto bg-dark text-white"
-                                : "bg-gray-800 text-white"
-                        }`}
+                        className={cn(
+                            "mb-4 max-w-[85%] break-words rounded-2xl px-4 py-3 shadow-sm",
+                            {
+                                "bg-primary/20 border border-primary/20 text-white": isAIMessage,
+                                "ml-auto bg-primary text-white shadow-lg shadow-primary/20": isCurrentUser,
+                                "bg-white/10 border border-white/5 text-white/90": !isAIMessage && !isCurrentUser
+                            }
+                        )}
                     >
-                        <div className="flex items-center justify-between">
-                            <span className={`text-xs ${
-                                isAIMessage ? "text-green-300" : "text-primary"
-                            }`}>
+                        <div className="flex items-center justify-between gap-4 mb-1">
+                            <span className={cn("text-[10px] font-bold uppercase tracking-wider", {
+                                "text-primary": isAIMessage,
+                                "text-white/80": isCurrentUser,
+                                "text-accent": !isAIMessage && !isCurrentUser
+                            })}>
                                 {message.username}
                             </span>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-[10px] text-white/40">
                                 {message.timestamp}
                             </span>
                         </div>
-                        <p className="whitespace-pre-wrap py-1">{message.message}</p>
-                        {isAIMessage && (
-                            <div className="mt-1 flex items-center gap-2">
-                                <span className="text-xs text-green-300 italic">
-                                    Gemini AI Response
-                                </span>
-                            </div>
-                        )}
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message}</p>
                     </div>
                 )
             })}
             
             {/* ✅ Show AI typing indicator when AI is responding */}
             {isAITyping && (
-                <div className="mb-2 w-[80%] break-words rounded-md px-3 py-2 bg-green-900 text-white">
-                    <span className="text-xs text-green-300 italic">Gemini AI is typing...</span>
+                <div className="mb-4 max-w-[85%] break-words rounded-2xl px-4 py-3 bg-primary/10 border border-primary/10 text-white/80 animate-pulse">
+                    <span className="text-xs font-medium italic">Gemini AI is thinking...</span>
                 </div>
             )}
         </div>
