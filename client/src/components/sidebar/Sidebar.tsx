@@ -73,36 +73,7 @@ function Sidebar() {
                     icon={viewIcons[VIEWS.SETTINGS]}
                 />
 
-                {/* Button to change activity state coding or drawing */}
-                <div className="flex items-center justify-center md:mt-auto">
-                    <button className={cn(buttonStyles.base, buttonStyles.hover)}
-                    onClick={changeState}
-                    onMouseEnter={() => setShowTooltip(true)}
-                    data-tooltip-id="activity-state-tooltip"
-                    data-tooltip-content={
-                            activityState === ACTIVITY_STATE.CODING 
-                                ? "Switch to Drawing Mode" 
-                                : "Switch to Coding Mode"
-                    }>
-                        {activityState === ACTIVITY_STATE.CODING ? (
-                            <MdOutlineDraw size={28} />
-                        ) : (
-                            <IoCodeSlash size={28} />
-                        )}
-                    </button>
-                    {showTooltip && (
-                        <Tooltip 
-                            id="activity-state-tooltip"
-                            place="right"
-                            offset={25}
-                            className="!z-50"
-                            style={tooltipStyles}
-                            noArrow={false}
-                            positionStrategy="fixed"
-                            float={true}
-                        />
-                    )}
-                </div>
+            e
             </div>
             <div
                 className="absolute left-0 top-0 z-20 w-full flex-col bg-dark/95 backdrop-blur-xl md:static md:min-w-[300px] md:border-r md:border-white/5"

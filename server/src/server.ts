@@ -92,7 +92,7 @@ app.post("/execute", (req: Request, res: Response) => {
         case "py":
         case "python3":
             if (!fileName.endsWith(".py")) fileName += ".py"
-            command = `python3 ${fileName}`
+            command = `py ${fileName}`
             break
         case "java":
             if (!fileName.endsWith(".java")) fileName += ".java"
