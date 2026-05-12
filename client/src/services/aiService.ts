@@ -1,52 +1,37 @@
-const API_KEY = "AIzaSyD76aus2cXj_hyqg-uBKB12xiJJHyAmn4Q";
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const API_KEY = "AIzaSyDUI1jJaSV9bDUiDZ2QYcmvyuIPihlXYzc";
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+        topK: 1,
+        topP: 1
+    }
+});
 
 export async function getAIResponse(message: string): Promise<{ response?: string; error?: string }> {
     try {
-        const response = await fetch(`${API_URL}?key=${API_KEY}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                contents: [
-                    {
-                        parts: [
-                            {
-                                text: message
-                            }
-                        ]
-                    }
-                ],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 2048,
-                    topK: 1,
-                    topP: 1
-                }
-            })
-        });
+        const result = await model.generateContent(message);
+        const response = result.response;
+        const text = response.text();
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('API Error Details:', errorData);
-            throw new Error(errorData.error?.message || 'Failed to get AI response');
-        }
-
-        const data = await response.json();
-        if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        if (!text) {
             throw new Error('No response generated');
         }
 
-        return { 
-            response: data.candidates[0].content.parts[0].text
+        return {
+            response: text
         };
     } catch (error) {
         console.error('AI Service Error:', error);
         return {
-            error: error instanceof Error 
-                ? `Error: ${error.message}` 
+            error: error instanceof Error
+                ? `Error: ${error.message}`
                 : "Failed to get AI response"
         };
     }
-} 
+}

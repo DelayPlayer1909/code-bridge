@@ -1,4 +1,5 @@
 import axiosInstance from "@/api/"
+import { getAIResponse } from "@/services/aiService"
 import { Language, RunContext as RunContextType } from "@/types/run"
 import langMap from "lang-map"
 import {
@@ -41,8 +42,12 @@ const RunCodeContextProvider = ({ children }: { children: ReactNode }) => {
                 const languages = await axiosInstance.get("/runtimes")
                 setSupportedLanguages(languages.data)
             } catch (error: any) {
-                toast.error("Failed to fetch supported languages")
-                if (error?.response?.data) console.error(error?.response?.data)
+                console.error("Failed to fetch supported languages:", error)
+                // Fallback languages if Piston is down/restricted
+                setSupportedLanguages([
+                    { language: "python", version: "3.10.0", aliases: ["py", "python3"] },
+                    { language: "javascript", version: "18.15.0", aliases: ["js", "node"] }
+                ])
             }
         }
 
@@ -67,7 +72,7 @@ const RunCodeContextProvider = ({ children }: { children: ReactNode }) => {
 
     const runCode = async () => {
         try {
-            if (!selectedLanguage) {
+            if (!selectedLanguage || !selectedLanguage.language) {
                 return toast.error("Please select a language to run the code")
             } else if (!activeFile) {
                 return toast.error("Please open a file to run the code")
@@ -78,27 +83,55 @@ const RunCodeContextProvider = ({ children }: { children: ReactNode }) => {
             setIsRunning(true)
             const { language, version } = selectedLanguage
 
-            const response = await axiosInstance.post("/execute", {
-                language,
-                version,
-                files: [{ name: activeFile.name, content: activeFile.content }],
-                stdin: input,
-            })
-            if (response.data.run.stderr) {
-                setOutput(response.data.run.stderr)
-            } else {
-                setOutput(response.data.run.stdout)
+            // Try running with our local execution server
+            try {
+                const response = await axiosInstance.post("/execute", {
+                    language,
+                    version,
+                    files: [{ name: activeFile.name, content: activeFile.content }],
+                    stdin: input,
+                })
+                
+                if (response.data.run.stderr) {
+                    setOutput(response.data.run.stderr)
+                } else {
+                    setOutput(response.data.run.stdout)
+                }
+                setIsRunning(false)
+                toast.dismiss()
+                return
+            } catch (localError: any) {
+                console.warn("Local execution failed, trying Gemini fallback...", localError)
+                
+                // If it's Python, try Gemini as a secondary fallback
+                if (language.toLowerCase() === "python") {
+                    toast.loading("Local execution failed. Trying Gemini AI...")
+                    const prompt = `Execute this Python code and provide the output. 
+Input: ${input}
+Code:
+${activeFile.content}`
+                    
+                    const { response, error } = await getAIResponse(prompt)
+                    if (error) throw new Error(error)
+                    setOutput(response || "No output")
+                    setIsRunning(false)
+                    toast.dismiss()
+                    toast.success("Executed via Gemini AI")
+                    return
+                }
+                
+                throw localError
             }
-            setIsRunning(false)
-            toast.dismiss()
         } catch (error: any) {
-            console.error(error.response.data)
-            console.error(error.response.data.error)
+            console.error("Run Code Error:", error)
             setIsRunning(false)
             toast.dismiss()
-            toast.error("Failed to run the code")
+            
+            const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || "Failed to run the code"
+            toast.error(errorMessage)
         }
     }
+
 
     return (
         <RunCodeContext.Provider
@@ -119,3 +152,4 @@ const RunCodeContextProvider = ({ children }: { children: ReactNode }) => {
 
 export { RunCodeContextProvider }
 export default RunCodeContext
+

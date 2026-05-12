@@ -6,6 +6,9 @@ import { SocketEvent, SocketId } from "./types/socket"
 import { USER_CONNECTION_STATUS, User } from "./types/user"
 import { Server } from "socket.io"
 import path from "path"
+import { exec } from "child_process"
+import fs from "fs"
+import { v4 as uuidv4 } from "uuid"
 
 dotenv.config()
 
@@ -20,14 +23,14 @@ app.use(express.static(path.join(__dirname, "public"))) // Serve static files
 const server = http.createServer(app)
 const io = new Server(server, {
 	cors: {
-		origin: "http://localhost:3000", // Ensure this matches your client URL
+		origin: "*", // Allow all origins for local development
 		methods: ["GET", "POST"],
 		credentials: true,
 	},
-	transports: ["websocket", "polling"], // Ensure WebSocket is included
+	transports: ["websocket", "polling"],
 	maxHttpBufferSize: 1e8,
 	pingTimeout: 60000,
-	pingInterval: 25000, // Add ping interval to keep connection alive
+	pingInterval: 25000,
 })
 
 let userSocketMap: User[] = []
@@ -59,10 +62,66 @@ function getUserBySocketId(socketId: SocketId): User | null {
 	return user
 }
 
+// Code Execution Logic
+app.post("/execute", (req: Request, res: Response) => {
+	const { language, files } = req.body
+	if (!files || files.length === 0) {
+		return res.status(400).send({ error: "No files provided" })
+	}
+
+	const code = files[0].content
+	const tempDir = path.join(__dirname, "..", "temp")
+	if (!fs.existsSync(tempDir)) {
+		fs.mkdirSync(tempDir)
+	}
+
+	const fileId = uuidv4()
+	let fileName = ""
+	let command = ""
+
+	switch (language.toLowerCase()) {
+		case "javascript":
+		case "js":
+			fileName = `${fileId}.js`
+			command = `node ${path.join(tempDir, fileName)}`
+			break
+		case "python":
+		case "py":
+		case "python3":
+			fileName = `${fileId}.py`
+			command = `python3 ${path.join(tempDir, fileName)}`
+			break
+		default:
+			return res.status(400).send({ error: "Language not supported for local execution" })
+	}
+
+	const filePath = path.join(tempDir, fileName)
+	fs.writeFileSync(filePath, code)
+
+	exec(command, (error, stdout, stderr) => {
+		// Clean up temp file
+		fs.unlinkSync(filePath)
+
+		res.send({
+			run: {
+				stdout,
+				stderr: stderr || (error ? error.message : ""),
+				code: error ? error.code : 0,
+			}
+		})
+	})
+})
+
+app.get("/runtimes", (req: Request, res: Response) => {
+    res.send([
+        { language: "javascript", version: "Node.js", aliases: ["js", "javascript"] },
+        { language: "python", version: "Python 3", aliases: ["py", "python", "python3"] }
+    ])
+})
+
 io.on("connection", (socket) => {
-	// Handle user actions
+	// ... (rest of the socket logic remains same)
 	socket.on(SocketEvent.JOIN_REQUEST, ({ roomId, username }) => {
-		// Check is username exist in the room
 		const isUsernameExist = getUsersInRoom(roomId).filter(
 			(u) => u.username === username
 		)
@@ -98,7 +157,6 @@ io.on("connection", (socket) => {
 		socket.leave(roomId)
 	})
 
-	// Handle file actions
 	socket.on(
 		SocketEvent.SYNC_FILE_STRUCTURE,
 		({ fileStructure, openFiles, activeFile, socketId }) => {
@@ -180,7 +238,6 @@ io.on("connection", (socket) => {
 		socket.broadcast.to(roomId).emit(SocketEvent.FILE_DELETED, { fileId })
 	})
 
-	// Handle user status
 	socket.on(SocketEvent.USER_OFFLINE, ({ socketId }) => {
 		userSocketMap = userSocketMap.map((user) => {
 			if (user.socketId === socketId) {
@@ -205,7 +262,6 @@ io.on("connection", (socket) => {
 		socket.broadcast.to(roomId).emit(SocketEvent.USER_ONLINE, { socketId })
 	})
 
-	// Handle chat actions
 	socket.on(SocketEvent.SEND_MESSAGE, ({ message }) => {
 		const roomId = getRoomId(socket.id)
 		if (!roomId) return
@@ -214,7 +270,6 @@ io.on("connection", (socket) => {
 			.emit(SocketEvent.RECEIVE_MESSAGE, { message })
 	})
 
-	// Handle cursor position
 	socket.on(SocketEvent.TYPING_START, ({ cursorPosition }) => {
 		userSocketMap = userSocketMap.map((user) => {
 			if (user.socketId === socket.id) {
@@ -264,7 +319,6 @@ io.on("connection", (socket) => {
 	})
 })
 
-// Add error handling for socket connection
 io.on("error", (error) => {
 	console.error("Socket.io error:", error)
 })
@@ -272,10 +326,10 @@ io.on("error", (error) => {
 const PORT = process.env.PORT || 3000
 
 app.get("/", (req: Request, res: Response) => {
-	// Send the index.html file
 	res.sendFile(path.join(__dirname, "..", "public", "index.html"))
 })
 
 server.listen(PORT, () => {
 	console.log(`Listening on port ${PORT}`)
 })
+
