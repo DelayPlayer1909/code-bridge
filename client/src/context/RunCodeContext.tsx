@@ -46,7 +46,8 @@ const RunCodeContextProvider = ({ children }: { children: ReactNode }) => {
                 // Fallback languages if Piston is down/restricted
                 setSupportedLanguages([
                     { language: "python", version: "3.10.0", aliases: ["py", "python3"] },
-                    { language: "javascript", version: "18.15.0", aliases: ["js", "node"] }
+                    { language: "javascript", version: "18.15.0", aliases: ["js", "node"] },
+                    { language: "java", version: "17.0.0", aliases: ["java"] }
                 ])
             }
         }

@@ -64,58 +64,79 @@ function getUserBySocketId(socketId: SocketId): User | null {
 
 // Code Execution Logic
 app.post("/execute", (req: Request, res: Response) => {
-	const { language, files } = req.body
-	if (!files || files.length === 0) {
-		return res.status(400).send({ error: "No files provided" })
-	}
+    const { language, files, stdin } = req.body
+    if (!files || files.length === 0) {
+        return res.status(400).send({ error: "No files provided" })
+    }
 
-	const code = files[0].content
-	const tempDir = path.join(__dirname, "..", "temp")
-	if (!fs.existsSync(tempDir)) {
-		fs.mkdirSync(tempDir)
-	}
+    const file = files[0]
+    const code = file.content
+    const originalFileName = file.name || "script"
 
-	const fileId = uuidv4()
-	let fileName = ""
-	let command = ""
+    const executionId = uuidv4()
+    const tempDir = path.join(__dirname, "..", "temp", executionId)
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true })
+    }
 
-	switch (language.toLowerCase()) {
-		case "javascript":
-		case "js":
-			fileName = `${fileId}.js`
-			command = `node ${path.join(tempDir, fileName)}`
-			break
-		case "python":
-		case "py":
-		case "python3":
-			fileName = `${fileId}.py`
-			command = `python3 ${path.join(tempDir, fileName)}`
-			break
-		default:
-			return res.status(400).send({ error: "Language not supported for local execution" })
-	}
+    let fileName = originalFileName
+    let command = ""
 
-	const filePath = path.join(tempDir, fileName)
-	fs.writeFileSync(filePath, code)
+    switch (language.toLowerCase()) {
+        case "javascript":
+        case "js":
+            if (!fileName.endsWith(".js")) fileName += ".js"
+            command = `node ${fileName}`
+            break
+        case "python":
+        case "py":
+        case "python3":
+            if (!fileName.endsWith(".py")) fileName += ".py"
+            command = `python3 ${fileName}`
+            break
+        case "java":
+            if (!fileName.endsWith(".java")) fileName += ".java"
+            const className = fileName.replace(".java", "")
+            command = `javac ${fileName} && java ${className}`
+            break
+        default:
+            fs.rmSync(tempDir, { recursive: true, force: true })
+            return res.status(400).send({
+                error: "Language not supported for local execution",
+            })
+    }
 
-	exec(command, (error, stdout, stderr) => {
-		// Clean up temp file
-		fs.unlinkSync(filePath)
+    const filePath = path.join(tempDir, fileName)
+    fs.writeFileSync(filePath, code)
 
-		res.send({
-			run: {
-				stdout,
-				stderr: stderr || (error ? error.message : ""),
-				code: error ? error.code : 0,
-			}
-		})
-	})
+    const process = exec(command, { cwd: tempDir, timeout: 15000 }, (error, stdout, stderr) => {
+        // Clean up temp directory
+        try {
+            fs.rmSync(tempDir, { recursive: true, force: true })
+        } catch (err) {
+            console.error("Failed to delete temp dir:", err)
+        }
+
+        res.send({
+            run: {
+                stdout,
+                stderr: stderr || (error ? error.message : ""),
+                code: error ? error.code : 0,
+            },
+        })
+    })
+
+    if (stdin && process.stdin) {
+        process.stdin.write(stdin)
+        process.stdin.end()
+    }
 })
 
 app.get("/runtimes", (req: Request, res: Response) => {
     res.send([
         { language: "javascript", version: "Node.js", aliases: ["js", "javascript"] },
-        { language: "python", version: "Python 3", aliases: ["py", "python", "python3"] }
+        { language: "python", version: "Python 3", aliases: ["py", "python", "python3"] },
+        { language: "java", version: "Java 17", aliases: ["java"] }
     ])
 })
 
