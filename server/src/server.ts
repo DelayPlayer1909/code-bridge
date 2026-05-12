@@ -9,6 +9,9 @@ import path from "path"
 import { exec } from "child_process"
 import fs from "fs"
 import { v4 as uuidv4 } from "uuid"
+import { execSync } from "child_process"  // already have exec, just add execSync
+import os from "os"
+
 
 dotenv.config()
 
@@ -62,9 +65,57 @@ function getUserBySocketId(socketId: SocketId): User | null {
 	return user
 }
 
-// Code Execution Logic
+
+
+// ─── Binary Resolution ────────────────────────────────────────────────────────
+
+const IS_WINDOWS = os.platform() === "win32"
+
+function resolveBinary(bin: string, windowsAliases?: string[]): string {
+    const names = IS_WINDOWS && windowsAliases ? windowsAliases : [bin]
+
+    for (const name of names) {
+        try {
+            const cmd = IS_WINDOWS ? `where ${name}` : `which ${name}`
+            const result = execSync(cmd, { stdio: ["pipe", "pipe", "pipe"] })
+                .toString()
+                .trim()
+                .split("\n")[0]
+                .trim()
+            if (result) return IS_WINDOWS ? `"${result}"` : result
+        } catch {
+            continue
+        }
+    }
+
+    // Fallback to JAVA_HOME for java/javac
+    const javaHome = process.env.JAVA_HOME
+    if (javaHome && (bin === "java" || bin === "javac")) {
+        return IS_WINDOWS
+            ? `"${javaHome}\\bin\\${bin}.exe"`
+            : `${javaHome}/bin/${bin}`
+    }
+
+    return bin // last resort — hope it's on PATH
+}
+
+// Resolved once at startup
+const JAVA   = resolveBinary("java")
+const JAVAC  = resolveBinary("javac")
+const PYTHON = resolveBinary("python3", ["python", "python3"])
+const NODE   = resolveBinary("node")
+
+console.log("Resolved binaries:", { NODE, PYTHON, JAVA, JAVAC })
+
+// ─── Execution Endpoint ───────────────────────────────────────────────────────
+
 app.post("/execute", (req: Request, res: Response) => {
     const { language, files, stdin } = req.body
+
+    // ── Validate request ──
+    if (!language) {
+        return res.status(400).send({ error: "No language provided" })
+    }
     if (!files || files.length === 0) {
         return res.status(400).send({ error: "No files provided" })
     }
@@ -73,11 +124,13 @@ app.post("/execute", (req: Request, res: Response) => {
     const code = file.content
     const originalFileName = file.name || "script"
 
+    if (!code) {
+        return res.status(400).send({ error: "File content is empty" })
+    }
+
+    // ── Build command ──
     const executionId = uuidv4()
     const tempDir = path.join(__dirname, "..", "temp", executionId)
-    if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true })
-    }
 
     let fileName = originalFileName
     let command = ""
@@ -86,49 +139,91 @@ app.post("/execute", (req: Request, res: Response) => {
         case "javascript":
         case "js":
             if (!fileName.endsWith(".js")) fileName += ".js"
-            command = `node ${fileName}`
+            command = `${NODE} ${fileName}`
             break
+
         case "python":
         case "py":
         case "python3":
             if (!fileName.endsWith(".py")) fileName += ".py"
-            command = `py ${fileName}`
+            command = `${PYTHON} ${fileName}`
             break
+
         case "java":
             if (!fileName.endsWith(".java")) fileName += ".java"
             const className = fileName.replace(".java", "")
-            command = `javac ${fileName} && java ${className}`
+            // On Windows, && works in cmd but wrap with cmd /c to be safe
+            command = IS_WINDOWS
+                ? `cmd /c "${JAVAC} ${fileName} && ${JAVA} ${className}"`
+                : `${JAVAC} ${fileName} && ${JAVA} ${className}`
             break
+
         default:
-            fs.rmSync(tempDir, { recursive: true, force: true })
             return res.status(400).send({
-                error: "Language not supported for local execution",
+                error: `Language "${language}" is not supported. Supported: javascript, python, java`,
             })
     }
 
+    // ── Create temp dir and write file ──
+    try {
+        fs.mkdirSync(tempDir, { recursive: true })
+    } catch (err) {
+        return res.status(500).send({ error: "Failed to create temp directory" })
+    }
+
     const filePath = path.join(tempDir, fileName)
-    fs.writeFileSync(filePath, code)
 
-    const process = exec(command, { cwd: tempDir, timeout: 15000 }, (error, stdout, stderr) => {
-        // Clean up temp directory
-        try {
-            fs.rmSync(tempDir, { recursive: true, force: true })
-        } catch (err) {
-            console.error("Failed to delete temp dir:", err)
-        }
+    try {
+        fs.writeFileSync(filePath, code)
+    } catch (err) {
+        fs.rmSync(tempDir, { recursive: true, force: true })
+        return res.status(500).send({ error: "Failed to write code to disk" })
+    }
 
-        res.send({
-            run: {
-                stdout,
-                stderr: stderr || (error ? error.message : ""),
-                code: error ? error.code : 0,
+    // ── Execute ──
+    const child = exec(
+        command,
+        {
+            cwd: tempDir,
+            timeout: 15000,
+            env: {
+                ...process.env,
+                PATH: IS_WINDOWS
+                    ? process.env.PATH                         // Windows PATH is usually fine
+                    : `/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${process.env.PATH ?? ""}`,
             },
-        })
-    })
+        },
+        (error, stdout, stderr) => {
+            // ── Cleanup ──
+            try {
+                fs.rmSync(tempDir, { recursive: true, force: true })
+            } catch (cleanupErr) {
+                console.error("Failed to delete temp dir:", cleanupErr)
+            }
 
-    if (stdin && process.stdin) {
-        process.stdin.write(stdin)
-        process.stdin.end()
+            // ── Timeout check ──
+            const timedOut = (error as any)?.killed === true || error?.message?.includes("ETIMEDOUT")
+
+            // ── Respond ──
+            res.send({
+                run: {
+                    stdout: stdout || "",
+                    stderr: stderr || (error && !timedOut ? error.message : ""),
+                    code: timedOut ? 124 : (error?.code ?? 0), // 124 = unix timeout exit code
+                    timedOut,
+                },
+            })
+        }
+    )
+
+    // ── Pipe stdin if provided ──
+    if (stdin && child.stdin) {
+        try {
+            child.stdin.write(stdin)
+            child.stdin.end()
+        } catch (err) {
+            console.error("Failed to write stdin:", err)
+        }
     }
 })
 
